@@ -1,0 +1,7 @@
+[b m n] = unique(data(:,1));
+newData = data;
+[row column] = size(b);
+
+for i=1:row
+    index = find(data(:,
+end

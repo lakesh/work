@@ -1,0 +1,40 @@
+Latitude
+Longitude
+Year
+DayofYear
+Hour
+Minute
+Land_Type
+CloudMask_Quality
+CloudMask_Summary
+SnowIce
+Aerosol_Type_Land
+Reflectance_After_Cloud_Screening_470
+Reflectance_After_Cloud_Screening_660
+Reflectance_After_Cloud_Screening_2100
+Cloud_Fraction_Land
+DB_QA_Usefulness
+DB_QA_Conf
+DB_Aerosol_Type
+DB_Retrieving_Condition
+ReflectanceDB_412
+ReflectanceDB_470
+ReflectanceDB_660
+SurfaceReflectance_DB_412
+SurfaceReflectanceDB_470
+SurfaceReflectanceDB_660
+NumberPixelsUsedDB_412
+NumberPixelsUsedDB-470
+NumberPixelsUsedDB_660
+AOD_DB_550
+AOD_DB_412
+AOD_DB_470
+AOD_DB_660
+Angstrom
+SSA_DB_412
+SSA_DB_470
+SSA_DB_660
+Solar Zenith
+Solar Azimuth
+Sensor Azimuth
+Scattering

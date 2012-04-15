@@ -1,0 +1,8 @@
+[b m n] = unique(data(:,4));
+
+[row column] = size(b);
+
+for i=1:row
+    day = b(i,1);
+    eachDayData = find(data(:,4) ==)
+end
