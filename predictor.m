@@ -2,12 +2,14 @@ row=9;
 column=13;
 days = 365;
 
-beta1 = 0.5;
-beta2 = 0.5;
+beta1 = 1.8357;
+beta2 = 1.6097;
 %alpha1 = 10;
 %alpha2 = 1;
-alpha1 = 3.2511;
-alpha2 = 2.8858;
+%alpha1 = 3.2511;
+%alpha2 = 2.8858;
+alpha1 = 1.9795;
+alpha2 = 1.7886;
 alpha3 = 0.001;
 
 %Default AOD value for the dummy predictor

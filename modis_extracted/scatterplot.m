@@ -1,5 +1,5 @@
-modisFolderPath = '/work/modis_extracted/2007/';
-aeronetFolderPath = '/work/aeronet/2007/';
+modisFolderPath = '/work/modis_extracted/2006/';
+aeronetFolderPath = '/work/aeronet/2006/';
 folders = dir(modisFolderPath);
 collocatedData = zeros(10000,9);
 index = 1;
@@ -18,7 +18,8 @@ for counter=1:length(folders)
         if folderName(1:1) ~= '.'
             disp(folderName);
             try 
-                load([modisFolderPath folderName '/interpolatedData_' folderName '.mat']);
+                %load([modisFolderPath folderName '/interpolatedData_' folderName '.mat']);
+                load([modisFolderPath folderName '/interpolated_' folderName '.mat']);
                 load([aeronetFolderPath folderName '.mat']);
                 [row1 column1, layer1] = size(data);
                 [row2 column2] = size(aeronetdata);

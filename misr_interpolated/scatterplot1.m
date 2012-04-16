@@ -2,8 +2,8 @@
 %load('/work/misr_interpolated/2007/2/2.mat');
 %load('/work/aeronet/2007/2.mat');
 
-misrFolderPath = '/work/misr_interpolated/2007/';
-aeronetFolderPath = '/work/aeronet/2007/';
+misrFolderPath = '/work/misr_interpolated/2006/';
+aeronetFolderPath = '/work/aeronet/2006/';
 folders = dir(misrFolderPath);
 collocatedData = zeros(10000,9);
 index = 1;
@@ -22,7 +22,8 @@ for counter=1:length(folders)
         if folderName(1:1) ~= '.'
             %cd(folderName);
             try 
-                load([misrFolderPath folderName '/interpolatedData_' folderName '.mat']);
+                %load([misrFolderPath folderName '/interpolatedData_' folderName '.mat']);
+                load([misrFolderPath folderName '/interpolated_' folderName '.mat']);
                 load([aeronetFolderPath folderName '.mat']);
                 [row1 column1, layer1] = size(data);
                 [row2 column2] = size(aeronetdata);
