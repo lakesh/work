@@ -1,7 +1,8 @@
 function [inputData missingValuesIndex] = loaddata()
 
-    interpolatedMISRPath = '/work/misr_interpolated/interpolateddata/';
-    interpolatedMODISPath = '/work/modis_extracted/interpolateddata/';
+    %For year 2006%
+    interpolatedMISRPath = '/work/testset/MISR/';
+    interpolatedMODISPath = '/work/testset/MODIS/';
 
     inputData = zeros(42705,4);
 
