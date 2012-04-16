@@ -2,14 +2,14 @@ row=9;
 column=13;
 days = 365;
 
-beta1 = 1.8357;
-beta2 = 1.6097;
+beta1 = 1.4544;
+beta2 = 1.2633;
 %alpha1 = 10;
 %alpha2 = 1;
 %alpha1 = 3.2511;
 %alpha2 = 2.8858;
-alpha1 = 1.9795;
-alpha2 = 1.7886;
+alpha1 = 1.7905;
+alpha2 = 1.6462;
 alpha3 = 0.001;
 
 %Default AOD value for the dummy predictor
@@ -23,7 +23,7 @@ default_predicted = 0;
 % alpha*indicatorfunction*AODvalue
 b = zeros(days*column*row,1);
 for i=1:days*row*column
-    b(i,1) = data(i,1) * data(i,2) * alpha2 + data(i,3) * data(i,4) * alpha1 + default_predicted * alpha3;
+    b(i,1) = data(i,1) * data(i,2) * alpha1 + data(i,3) * data(i,4) * alpha2 + default_predicted * alpha3;
     %b(i,1) = 2*(data(i,1) * alpha2 + data(i,3) * alpha1);
 end
 
