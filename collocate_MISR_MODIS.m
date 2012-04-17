@@ -1,8 +1,8 @@
 %MODIS = load('collocated_MODIS_AERONET.mat');
 %MISR = load('collocated_MISR_AERONET.mat');
 
-MODIS = load('collocated_MODIS_AERONET_2006.mat');
-MISR = load('collocated_MISR_AERONET_2006.mat');
+MODIS = load('collocated_MODIS_AERONET_2003.mat');
+MISR = load('collocated_MISR_AERONET_2003.mat');
 
 MODIS = MODIS.collocatedData;
 MISR = MISR.collocatedData;

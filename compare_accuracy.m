@@ -1,5 +1,5 @@
 %load('collocated_MODIS_AERONET');
-load('collocated_MODIS_AERONET_2006');
+load('collocated_MODIS_AERONET_2004');
 load('u');
 %load('missingValuesIndex');
 

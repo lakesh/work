@@ -2,8 +2,8 @@
 %load('/work/misr_interpolated/2007/2/2.mat');
 %load('/work/aeronet/2007/2.mat');
 
-misrFolderPath = '/work/misr_interpolated/2006/';
-aeronetFolderPath = '/work/aeronet/2006/';
+misrFolderPath = '/work/misr_interpolated/2003/';
+aeronetFolderPath = '/work/aeronet/2003/';
 folders = dir(misrFolderPath);
 collocatedData = zeros(10000,9);
 index = 1;

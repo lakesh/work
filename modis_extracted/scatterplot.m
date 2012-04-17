@@ -1,5 +1,5 @@
-modisFolderPath = '/work/modis_extracted/2006/';
-aeronetFolderPath = '/work/aeronet/2006/';
+modisFolderPath = '/work/modis_extracted/2003/';
+aeronetFolderPath = '/work/aeronet/2003/';
 folders = dir(modisFolderPath);
 collocatedData = zeros(10000,9);
 index = 1;
