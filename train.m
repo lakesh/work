@@ -3,7 +3,7 @@
 
 
 %years = [2004 2005 2006 2007];
-years = [2005 2006 2007];
+years = [2004];
 dataPath =  '/work/';
 filePrefix = 'collocated_MISR_MODIS_AERONET_';
 
@@ -11,8 +11,8 @@ filePrefix = 'collocated_MISR_MODIS_AERONET_';
 alpha1 = 10;
 alpha2 = 1;
 alpha3 = 0.01; % for dummy predictor
-beta1 = 0.5;
-beta2 = 0.5;
+beta1 = 0;
+beta2 = 0;
 
 %Default AOD value for the dummy predictor
 default_predicted = 0;
@@ -181,7 +181,7 @@ clear sparseIndexX sparseIndexY sparseIndexValue sparseIndexValue_WholeYear spar
 
 
 %Learning rate
-learningRate = 0.001;
+learningRate = 0.0001;
 
 iterate = true;
 numberOfIterations = 0;
@@ -199,7 +199,7 @@ while iterate == true
     
     for i=1:yearcolumn
         year = years(i);
-        load([dataPath filePrefix num2str(year) '.mat']);
+        %load([dataPath filePrefix num2str(year) '.mat']);
         
         [row column] = size(collocatedData);
         
@@ -274,65 +274,66 @@ while iterate == true
         %%%%%%%%%%%%%%%%
 
         %Get the index for the collocated points to sort the Q matrix
-        collocatedIndex = zeros(row,1);
-        index = 1;
-        sizeX = 13;
-        sizeY = 9;
-        for j=1:row
-            data = collocatedData(j,:);
-            collocatedIndex(index,1) = (data(1,8) - 1)*sizeX*sizeY + (data(1,9)-1)*sizeX + data(1,10);
-            index = index + 1;
-        end
+        %collocatedIndex = zeros(row,1);
+        %index = 1;
+        %sizeX = 13;
+        %sizeY = 9;
+        %for j=1:row
+        %    data = collocatedData(j,:);
+        %    collocatedIndex(index,1) = (data(1,8) - 1)*sizeX*sizeY + (data(1,9)-1)*sizeX + data(1,10);
+        %    index = index + 1;
+        %end
 
         %Calculate QLL_Spatial
-        QLL_Spatial = QSpatial(collocatedIndex,:);
-        QLL_Spatial = QLL_Spatial(:,collocatedIndex);
+        %QLL_Spatial = QSpatial(collocatedIndex,:);
+        %QLL_Spatial = QLL_Spatial(:,collocatedIndex);
 
         %Calculate QLL_Temporal
-        QLL_Temporal = QTemporal(collocatedIndex,:);
-        QLL_Temporal = QLL_Temporal(:,collocatedIndex);
+        %QLL_Temporal = QTemporal(collocatedIndex,:);
+        %QLL_Temporal = QLL_Temporal(:,collocatedIndex);
 
         %%%%%%%% End of sorting %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        Q2 = QLL_Spatial;
-        Q3 = QLL_Temporal;
+        %Q2 = QLL_Spatial;
+        %Q3 = QLL_Temporal;
 
         %The Q matrix
-        Q=Q1+beta1*Q2+beta2*Q3;
-
+        %Q=Q1+beta1*Q2+beta2*Q3;
+        Q=Q1;
 
         %calculate the derivative
         delta_log_alpha1 = delta_log_alpha1 + (-sumMISR + 1/2 * trace(Q\E1) - X(:,1)'*(Q\b) + b'* (Q\(E1*(Q\b))) - b'*(Q\X(:,1)));
         delta_log_alpha2 = delta_log_alpha2 + (-sumMODIS + 1/2 * trace(Q\E2) - X(:,2)'*(Q\b) + b'* (Q\E2*(Q\b)) - b'*(Q\X(:,2)));
-        delta_log_beta1 = delta_log_beta1 + (-beta1*collocatedData(:,5)'*Q2*collocatedData(:,5) + 1/2*trace(Q\Q2) - b'* (Q\(Q2*(Q\b))));
-        delta_log_beta2 = delta_log_beta2 + (-beta2*collocatedData(:,5)'*Q3*collocatedData(:,5) + 1/2*trace(Q\Q3) - b'* (Q\(Q3*(Q\b))));
+        %delta_log_beta1 = delta_log_beta1 + (-beta1*collocatedData(:,5)'*Q2*collocatedData(:,5) + 1/2*trace(Q\Q2) - b'* (Q\(Q2*(Q\b))));
+        %delta_log_beta2 = delta_log_beta2 + (-beta2*collocatedData(:,5)'*Q3*collocatedData(:,5) + 1/2*trace(Q\Q3) - b'* (Q\(Q3*(Q\b))));
 
     end
     
-    delta_log_alpha1 = alpha1*(delta_log_alpha1 - alpha1);
-    delta_log_alpha2 = alpha2*(delta_log_alpha2 - alpha2);
-    delta_log_beta1 = beta1*(delta_log_beta1 - beta1);
-    delta_log_beta2 = beta2*(delta_log_beta2 - beta2);
+    delta_log_alpha1 = alpha1*(delta_log_alpha1);
+    delta_log_alpha2 = alpha2*(delta_log_alpha2);
+    %delta_log_beta1 = beta1*(delta_log_beta1 - beta1);
+    %delta_log_beta2 = beta2*(delta_log_beta2 - beta2);
     
     %Update the parameters
     log_alpha1 = log(alpha1) + learningRate * delta_log_alpha1;
     log_alpha2 = log(alpha2) + learningRate * delta_log_alpha2;
-    log_beta1 = log(beta1) + learningRate * delta_log_beta1;
-    log_beta2 = log(beta2) + learningRate * delta_log_beta2;
+    %log_beta1 = log(beta1) + learningRate * delta_log_beta1;
+    %log_beta2 = log(beta2) + learningRate * delta_log_beta2;
 
     alpha1_new = exp(log_alpha1);
     alpha2_new = exp(log_alpha2);
-    beta1_new = exp(log_beta1);
-    beta2_new = exp(log_beta2);
+    %beta1_new = exp(log_beta1);
+    %beta2_new = exp(log_beta2);
 
-    difference = abs(alpha1_new-alpha1) + abs(alpha2_new-alpha2) + abs(beta1_new-beta1) + abs(beta2_new-beta2);
+    %difference = abs(alpha1_new-alpha1) + abs(alpha2_new-alpha2) + abs(beta1_new-beta1) + abs(beta2_new-beta2);
+    difference = abs(alpha1_new-alpha1) + abs(alpha2_new-alpha2);
 
     alpha1 = alpha1_new;
     alpha2 = alpha2_new;
-    beta1 = beta1_new;
-    beta2 = beta2_new;
+    %beta1 = beta1_new;
+    %beta2 = beta2_new;
 
-    if difference <= 0.001
+    if difference <= 0.00001
         iterate = false;
     end
     %disp(sumMODIS);

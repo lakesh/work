@@ -1,0 +1,149 @@
+function location_details = get_all_separate_inputs(matches_aero_modis, matches_aero_misr)
+
+% load all % in this file there are these two inputs, named
+% quality_matches_modis_time_loc_qa_mod470_aero440
+% quality_matches_misr_time_loc_qab_misr446b_misr446_aero440
+% they are only quality 3 inputs, not too many of them though
+
+% location_details is a structure that for each common location hold
+% separately MODIS, MISR and AERONET data, together 
+
+% first get only those sites that have at least at one point in time both
+% measurements
+locs_aero_modis = unique(matches_aero_modis(:, 6)); % [6 7]
+% locs_aero_modis = prod(locs_aero_modis, 2);
+locs_aero_misr = unique(matches_aero_misr(:, 6)); % [6 7]
+% locs_aero_misr = prod(locs_aero_misr, 2);
+
+locs_common = [];
+for i = 1 : length(locs_aero_modis)
+    curr_modis = locs_aero_modis(i);
+    for j = 1 : length(locs_aero_misr)
+        curr_misr = locs_aero_misr(j);
+        if (curr_modis == curr_misr)
+            locs_common = [locs_common; curr_modis];
+        end;
+    end;
+end;
+
+% now, for each common location, find how many modis and misr
+count_common_modis = zeros(size(locs_common));
+count_common_misr = zeros(size(locs_common));
+for i = 1 : length(count_common_modis)
+    count_common_modis(i) = sum(matches_aero_modis(:, 6) == locs_common(i));
+    count_common_misr(i) = sum(matches_aero_misr(:, 6) == locs_common(i));
+end;
+
+% now, for those that are common, find the first and last day that a
+% measurement was observed by misr and modis separately (yyyy/mm/dd)
+locs_first_last_date_common_modis = zeros(length(locs_common), 6);
+locs_first_last_date_common_misr = zeros(length(locs_common), 6);
+for i = 1 : length(count_common_modis)
+    current_loc = locs_common(i);
+    current_loc_modis = matches_aero_modis(matches_aero_modis(:, 6) == current_loc, :);
+    current_loc_misr = matches_aero_misr(matches_aero_misr(:, 6) == current_loc, :);
+        
+    % why is that 57 is unsorted, it shouldn't be? Check later
+    sorted = current_loc_modis(:, 1 : 3) * [366; 31; 1];
+    [~, sorted] = sort(sorted);
+    current_loc_modis = current_loc_modis(sorted, :);
+    sorted = current_loc_misr(:, 1 : 3) * [366; 31; 1];
+    [~, sorted] = sort(sorted);
+    current_loc_misr = current_loc_misr(sorted, :);
+    
+    locs_first_last_date_common_modis(i, :) = [current_loc_modis(1, 1 : 3), ...
+       current_loc_modis(end, 1 : 3)];
+    locs_first_last_date_common_misr(i, :) = [current_loc_misr(1, 1 : 3), ...
+       current_loc_misr(end, 1 : 3)];
+end;
+
+% now, for each of the locations, calculate how many days are there between
+% the first and the last measurement, either MISR or MODIS
+locs_total_num_days = zeros(size(locs_common));
+% holds common start and common end date
+locs_first_last_date_common = zeros(length(locs_common), 6);
+for i = 1 : length(locs_common)
+    first_modis = locs_first_last_date_common_modis(i, 1 : 3);
+    last_modis = locs_first_last_date_common_modis(i, 4 : 6);
+    first_misr = locs_first_last_date_common_misr(i, 1 : 3);
+    last_misr = locs_first_last_date_common_misr(i, 4 : 6);
+    
+    % see which date comes first and which last
+    if (first_modis * [366; 31; 1] < first_misr * [366; 31; 1])
+        locs_first_last_date_common(i, 1 : 3) = first_modis;
+    else
+        locs_first_last_date_common(i, 1 : 3) = first_misr;
+    end;
+    if (last_modis * [366; 31; 1] < last_misr * [366; 31; 1])
+        locs_first_last_date_common(i, 4 : 6) = last_misr;
+    else
+        locs_first_last_date_common(i, 4 : 6) = last_modis;
+    end;
+    
+    % find the period length
+    locs_total_num_days(i) = get_period_length(locs_first_last_date_common(i, 1 : 3), locs_first_last_date_common(i, 4 : 6));
+end;
+
+% now, for each location, generate an array saying for which day 
+for i = 1 : length(locs_common)
+    current_loc = locs_common(i);
+    current_loc_modis = matches_aero_modis(matches_aero_modis(:, 6) == current_loc, :);
+    current_loc_misr = matches_aero_misr(matches_aero_misr(:, 6) == current_loc, :);
+        
+    % why is that 57 is unsorted, it shouldn't be? Check later
+    sorted = current_loc_modis(:, 1 : 3) * [366; 31; 1];
+    [~, sorted] = sort(sorted);
+    current_loc_modis = current_loc_modis(sorted, :);
+    sorted = current_loc_misr(:, 1 : 3) * [366; 31; 1];
+    [~, sorted] = sort(sorted);
+    current_loc_misr = current_loc_misr(sorted, :);
+
+    measurements_modis = sparse(locs_total_num_days(i), 1);
+    measurements_misr = sparse(locs_total_num_days(i), 1);
+    measurements_aeronet = sparse(locs_total_num_days(i), 1);
+    
+    location_details(i).location = current_loc_modis(1, [6 7]);
+    location_details(i).start_day = locs_first_last_date_common(i, 1 : 3);
+    location_details(i).end_day = locs_first_last_date_common(i, 4 : 6);
+    location_details(i).total_days = locs_total_num_days(i);
+    for j = 1 : size(current_loc_modis, 1)
+        temp_period = get_period_length(locs_first_last_date_common(i, 1 : 3), current_loc_modis(j, 1 : 3));
+        measurements_modis(temp_period) = current_loc_modis(j, 9);
+        measurements_aeronet(temp_period) = current_loc_modis(j, 10);
+    end;    
+    for j = 1 : size(current_loc_misr, 1)
+        temp_period = get_period_length(locs_first_last_date_common(i, 1 : 3), current_loc_misr(j, 1 : 3));
+        measurements_misr(temp_period) = current_loc_misr(j, 9);
+        measurements_aeronet(temp_period) = current_loc_misr(j, 11);
+    end;  
+    
+    location_details(i).measurements_modis = measurements_modis;
+    location_details(i).measurements_misr = measurements_misr;
+    location_details(i).measurements_aeronet = measurements_aeronet;
+end;
+
+function days_in_month = get_days_in_month(month)
+if (month == 1) || (month == 3) || (month == 5) || (month == 7) || (month == 8) || (month == 10) || (month == 12)
+    days_in_month = 31;
+elseif (month == 2)
+    days_in_month = 28;
+else
+    days_in_month = 30;
+end;
+
+function num_days_in_period = get_period_length(day_start, day_end)
+num_days_in_period = 1;
+current_date = day_start;
+while (sum(abs(current_date - day_end)) ~= 0)
+    num_days_in_period = num_days_in_period + 1;
+    current_date(3) = current_date(3) + 1;
+    
+    if (current_date(3) > get_days_in_month(current_date(2)))
+        current_date(3) = 1;
+        current_date(2) = current_date(2) + 1;
+        if (current_date(2) > 12)
+            current_date(2) = 1;
+            current_date(1) = current_date(1) + 1;
+        end;
+    end;
+end;

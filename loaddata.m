@@ -7,7 +7,7 @@ function [inputData missingValuesIndex] = loaddata()
     inputData = zeros(42705,4);
 
     %filePrefix = 'interpolatedData_';
-    filePrefix = 'interpolated_';
+    filePrefix = 'interpolatedData_';
 
     row = 9;
     column = 13;
@@ -21,8 +21,8 @@ function [inputData missingValuesIndex] = loaddata()
             load([interpolatedMISRPath filePrefix num2str(day) '.mat']);
             for i=1:row
                 for j=1:column
-                    inputData(index,1) = data(i,j,8);
-                    if data(i,j,8) == 0 || isnan(data(i,j,8))
+                    inputData(index,1) = data(i,j,10);
+                    if data(i,j,10) == 0 || isnan(data(i,j,10))
                         inputData(index,2) = 0;
                         %Replace the Nan values by 0 as well
                         inputData(index,1) = 0;

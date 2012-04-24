@@ -1,0 +1,5 @@
+function matches_aeronet_terra_misr = aaaa_match_aeronet_with_both_terra_and_misr(matches_terra, matches_misr)
+
+% matches have the following format:
+% [AERONET file, AERONET entry, MODIS file, MODIS entry, MISR file, MISR entry]
+

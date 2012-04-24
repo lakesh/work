@@ -2,15 +2,29 @@ row=9;
 column=13;
 days = 365;
 
-beta1 = 1.3162;
-beta2 = 1.3221;
-%alpha1 = 10;
-%alpha2 = 1;
-%alpha1 = 3.2511;
-%alpha2 = 2.8858;
-alpha1 = 2.6424;
-alpha2 = 2.5170;
+
+%alpha1 = 2.6424; 2004 test
+%alpha2 = 2.5170;
+%beta1=1.3162;
+%beta2=1.3221;
+
+alpha1 = 2.2365; %2007 test
+alpha2 = 2.3824;
 alpha3 = 0.001;
+beta1 = 1.2569;
+beta2 = 1.2707;
+
+%alpha1 = 2.5102; %2006 test
+%alpha2 = 2.8801;
+%alpha3 = 0.001;
+%beta1 = 1.4666;
+%beta2 = 1.4205;
+
+%alpha1 = 3.1207; %2006 test
+%alpha2 = 3.2645;
+%alpha3 = 0.001;
+%beta1 = 1.1645;
+%beta2 = 1.1112;
 
 %Default AOD value for the dummy predictor
 default_predicted = 0;
@@ -161,48 +175,16 @@ for i=1:m
         index = index + 1;
     end
 end
-%Now populate the alpha values
+%%Now populate the alpha values
 [m n] = size(diagonalMatrixIndex);
 for i=1:m
-    sparseIndexValue_WholeYear(diagonalMatrixIndex(i,1),1) = sparseIndexValue_WholeYear(diagonalMatrixIndex(i,1),1) + data(i,2) * alpha2 + data(i,4) * alpha1 + alpha3;
+    sparseIndexValue_WholeYear(diagonalMatrixIndex(i,1),1) = sparseIndexValue_WholeYear(diagonalMatrixIndex(i,1),1) + data(i,2) * alpha1 + data(i,4) * alpha2 + alpha3;
 end
-
-
-%TODO increase the efficiency of this routine
-%Possible method save the xindex and the corresponding values to be
-%changed. Then modify the Q matrix directly
-%[m n] = size(missingValuesIndex);
-%for i=1:m
-%    missingValue = missingValuesIndex(i,1);
-%    
-    %Find the index of the data points which are connected with this data
-    %point with missing values
-%    a= find(sparseIndexY_WholeYear == missingValue);
-%    [m1 n1] = size(a);
-%    for j=1:m1
-%        yIndex = a(j,1);
-%        
-%        %Find the corresponsing x index
-%        xIndex = sparseIndexX_WholeYear(j,1);
-%        value = sparseIndexValue_WholeYear(j,1);
-%        
-        %Since we will be removing the points with missing values,we need
-        %to remove the beta smoothing as well.xIndex gives the diagonal
-        %elements which have the data point with missing attribute as a
-        %smoother. Just change the value of the diagonal element
-%        diagonalElementIndex = find(sparseIndexX_WholeYear==xIndex&sparseIndexY_WholeYear==xIndex);
-%        sparseIndexValue_WholeYear(diagonalElementIndex,1) = sparseIndexValue_WholeYear(diagonalElementIndex,1) - value;
-%    end
-%end
-
-% u=sigma*b
-% inv(sigma) = 2*Q
-% sigma = 1/2*inv(Q)
-% Qu = b/2
-% u = Q\(b/2);
 
 % Create the precision matrix
 Q = sparse(sparseIndexX_WholeYear', sparseIndexY_WholeYear', sparseIndexValue_WholeYear', N*365, N*365);
+
+
 
 clear day days i index j linearMatrix m n row ...
     sparseIndexValue_WholeYear sparseIndexX_WholeYear...
