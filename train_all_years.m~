@@ -11,10 +11,10 @@ function [alpha1, alpha2] = train_CRF_NIPS_v2_lakesh(colloc_data, init_params, l
 % function [CRF_pred, params, mae] = CRF_train_v1(data_truth, data_pred,
 % data_last_week, init_params)
 %
-%  Trains CRF, calculates parameters and predicts times. Returns error.
-%  Practically the same as the first version, only here we don't use
-%  linear regression predictions (provided by Coric), but use history and
-%  other info as suggested by professor.
+% � Trains CRF, calculates parameters and predicts times. Returns error.
+% � Practically the same as the first version, only here we don't use
+% � linear regression predictions (provided by Coric), but use history and
+% � other info as suggested by professor.
 
 % definitions
 
@@ -149,12 +149,20 @@ len=zeros(total_years,1);
 for i=1:total_years
     data = colloc_datas{i}.collocated_misr_modis_aeronet;
     labelled = find(data(:,3) ~= 0);
-    len(i) =  size(labelled,1);
+    
+   len(i) =  size(colloc_datas{i}.collocated_misr_modis_aeronet, 1);
 end
 
 for i=1:total_years
-    data = colloc_datas{i}.collocated_misr_modis_aeronet;
-    colloc_indexes{i}.colloc_index = find(data(:,3) ~= 0);
+    colloc_indexes{i}.colloc_index = zeros(len(i),1);
+    index = 1;
+    sizeX = 13;
+    sizeY = 9;
+    for j=1:len(i)
+        data = colloc_datas{i}.collocatedData(j,:);
+        colloc_indexes{i}.colloc_index(index,1) = (data(1,8) - 1)*sizeX*sizeY + (data(1,9)-1)*sizeX + data(1,10);
+        index = index + 1;
+    end
     uncolloc_indexes{i}.uncolloc_index = linearMatrix(:,4);
     uncolloc_indexes{i}.uncolloc_index(colloc_indexes{i}.colloc_index,:)=[];
 end
@@ -178,6 +186,9 @@ end
 Q2=cell(total_years,1);
 for i=1:total_years
      Q2{i} = (QLL_Spatial{i}-QLU_Spatial{i}*(QUU_Spatial{i}\QUL_Spatial{i}));
+     Q2{i} = (QLL_Spatial{i}-QLU_Spatial{i}*(QUU_Spatial{i}\QUL_Spatial{i}));
+     Q2{i} = (QLL_Spatial{i}-QLU_Spatial{i}*(QUU_Spatial{i}\QUL_Spatial{i}));
+     Q2{i} = (QLL_Spatial{i}-QLU_Spatial{i}*(QUU_Spatial{i}\QUL_Spatial{i}));
 end
 
 % train CRF
@@ -187,12 +198,11 @@ while true
     for i=1:total_years
         year = years(i);
         %load(['/work/collocated_MISR_MODIS_AERONET_' num2str(year) '.mat']);
-        colloc_data = colloc_datas{i}.collocated_misr_modis_aeronet;
-        labelled = find(colloc_data(:,3) ~= 0);
-        
-        truth_aeronet = colloc_data(labelled, 3);
-        forecast_modis = colloc_data(labelled, 2);
-        forecast_misr = colloc_data(labelled, 1);
+        colloc_data = colloc_datas{i}.collocatedData;
+        len = size(colloc_data, 1);
+        truth_aeronet = colloc_data(:, 5);
+        forecast_modis = colloc_data(:, 3);
+        forecast_misr = colloc_data(:, 1);
 
         indicator_modis = (forecast_modis ~= 0);
         indicator_misr = (forecast_misr ~= 0);
