@@ -2,29 +2,12 @@ row=9;
 column=13;
 days = 365;
 
+alpha1=43.1356;
+alpha2=29.2888;
+beta1=0;
+beta2=0;
+alpha3=0.001;
 
-%alpha1 = 2.6424; 2004 test
-%alpha2 = 2.5170;
-%beta1=1.3162;
-%beta2=1.3221;
-
-alpha1 = 2.2365; %2007 test
-alpha2 = 2.3824;
-alpha3 = 0.001;
-beta1 = 1.2569;
-beta2 = 1.2707;
-
-%alpha1 = 2.5102; %2006 test
-%alpha2 = 2.8801;
-%alpha3 = 0.001;
-%beta1 = 1.4666;
-%beta2 = 1.4205;
-
-%alpha1 = 3.1207; %2006 test
-%alpha2 = 3.2645;
-%alpha3 = 0.001;
-%beta1 = 1.1645;
-%beta2 = 1.1112;
 
 %Default AOD value for the dummy predictor
 default_predicted = 0;

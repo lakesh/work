@@ -42,8 +42,9 @@ while true
     indicator_dummy = (forecast_misr == forecast_misr);
  
     Q1 = alpha1 * spdiags(indicator_misr, 0, len, len) + alpha2 * spdiags(indicator_modis, 0, len, len) + alpha3 * spdiags(indicator_dummy, 0, len, len);
-    Q2 = 0;%beta * aaaa_create_sparse_tridiagonal_matrix_for_beta(len);
-
+    %Q2 = beta * aaaa_create_sparse_tridiagonal_matrix_for_beta(len);
+    Q2=0;
+    
     sigma_inv = 2 * (Q1 + Q2);
     b = 2 * (alpha1 * spdiags(indicator_misr, 0, len, len) * forecast_misr + alpha2 * spdiags(indicator_modis, 0, len, len) * forecast_modis);
 %         sparse_tridiag_sigma = aaaa_inverse_tridiagonal_get_only_diagonals(sigma_inv);
@@ -58,22 +59,27 @@ while true
 
     gradient_alpha2 = -((truth_aeronet - loc_prediction)' * spdiags(indicator_misr, 0, len, len) * (truth_aeronet - loc_prediction)) + ...
         2 * (forecast_modis' - loc_prediction'*spdiags(indicator_modis, 0, len, len)) * (truth_aeronet - loc_prediction) + ...
-        trace(spdiags(sigma_inv\indicator_modis, 0, len, len));
+        trace(sigma_inv\spdiags(indicator_modis, 0, len, len));
 
     % interaction parameter beta
-%     gradient_beta = ...
-%         - ((truth_aeronet + loc_prediction) .* indicator_aeronet)' * aaaa_create_sparse_tridiagonal_matrix_for_beta(len) * ((truth_aeronet - loc_prediction) .* indicator_aeronet) + ...
-%         0.5 * computeTrace(sigma_inv, 2 * aaaa_create_sparse_tridiagonal_matrix_for_beta(len));
+    %gradient_beta = ...
+    % - (truth_aeronet + loc_prediction)' * aaaa_create_sparse_tridiagonal_matrix_for_beta(len) * (truth_aeronet - loc_prediction) + ...
+    %    trace(sigma_inv\ aaaa_create_sparse_tridiagonal_matrix_for_beta(len));
  
  
     % apply gradient information    
     alpha1_new = exp(log(alpha1) + learning_rate * alpha1 * (gradient_alpha1));
     alpha2_new = exp(log(alpha2) + learning_rate * alpha2 * (gradient_alpha2));
+    %beta_new = exp(log(beta) + learning_rate * beta * (gradient_beta-0.01*beta));
     
-    delta_alpha1 = abs(alpha1_new - alpha1);
-    delta_alpha2 = abs(alpha2_new - alpha2);
+    delta_alpha1 = abs(alpha1_new-alpha1);
+    delta_alpha2 = abs(alpha2_new-alpha2);
+    %delta_beta = abs(beta_new - beta);
+    
+    
     alpha1 = alpha1_new;
     alpha2 = alpha2_new;
+    %beta = beta_new;
     
     disp(delta_alpha1);
     
@@ -83,9 +89,12 @@ while true
     %if (delta_alpha1 < 0.00000001 && delta_alpha2 < 0.00000001)
     %    break;
     %end;
-    if (delta_alpha1 < 0.0000000001 && delta_alpha2 < 0.00000000001)
-        break;
-    end;
+    %if (delta_alpha1 < 0.0000000001 && delta_alpha2 < 0.00000000001 && delta_beta < 0.00000000001)
+    %    break;
+    %end;
+    if (delta_alpha1 < 0.000001 && delta_alpha2 < 0.000001) %&& delta_beta < 0.000001)
+       break; 
+    end
 %     [truth_aeronet'; forecast_modis'; forecast_misr'; loc_prediction']
  	
 %     pause;

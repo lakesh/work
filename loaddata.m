@@ -7,7 +7,7 @@ function [inputData missingValuesIndex] = loaddata()
     inputData = zeros(42705,4);
 
     %filePrefix = 'interpolatedData_';
-    filePrefix = 'interpolatedData_';
+    filePrefix = 'interpolated_';
 
     row = 9;
     column = 13;
