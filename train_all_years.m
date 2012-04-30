@@ -125,10 +125,10 @@ clear sparseIndexValue sparseIndexValue_WholeYear sparseIndexX sparseIndexX_Whol
 %years=[2004 2005 2006 2007];
 %years=[2003 2004 2005 2007];
 %years=[2003 2004 2005 2006];
-years=[2007];
+years=[2004 2005 2006 2007];
 
 %total_years = 4;
-total_years = 1;
+total_years = 4;
 
 gradient_alpha1_array=zeros(total_years,1);
 gradient_alpha2_array=zeros(total_years,1);
@@ -140,7 +140,10 @@ colloc_datas = cell(total_years,1);
 %colloc_datas{3} = load('/work/collocated_MISR_MODIS_AERONET_2005.mat');
 %colloc_datas{4} = load('/work/collocated_MISR_MODIS_AERONET_2007.mat');
 
-colloc_datas{1} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2007.mat');
+colloc_datas{1} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2004.mat');
+colloc_datas{2} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2005.mat');
+colloc_datas{3} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2006.mat');
+colloc_datas{4} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2007.mat');
 
 labelled_indexes = cell(total_years,1);
 unlabelled_indexes = cell(total_years,1);
@@ -174,8 +177,8 @@ while true
         indicator_modis = (forecast_modis ~= 0);
         indicator_misr = (forecast_misr ~= 0);
         
-        indicator_modis_whole = (colloc_data(:,1) ~= 0);
-        indicator_misr_whole = (colloc_data(:,2) ~= 0);
+        indicator_modis_whole = (colloc_data(:,2) ~= 0);
+        indicator_misr_whole = (colloc_data(:,1) ~= 0);
         indicator_dummy_whole = (colloc_data(:,2) == colloc_data(:,2));
 
         Q1 = alpha1 * spdiags(indicator_misr_whole, 0, len, len) + alpha2 * spdiags(indicator_modis_whole, 0, len, len) + alpha3 * spdiags(indicator_dummy_whole, 0, len, len);
@@ -231,32 +234,42 @@ while true
         beta1_sigma_inv_UU = beta1_sigma_inv_UU(:,unlabelled_indexes{i}.unlabelled_index);
         
         
-        clear labelled_index unlabelled_indexes linearMatrix
+        clear  linearMatrix
+        disp('yahoo');
+        %alpha1_sigma_inv_derivative = alpha1_sigma_inv_LL - (alpha1_sigma_inv_LU / Q_UU) * Q_UL + ...
+        %    (Q_LU / Q_UU) * (alpha1_sigma_inv_UU / Q_UU) * Q_UL - (Q_LU / Q_UU) * alpha1_sigma_inv_UL;        
+        alpha1_sigma_inv_derivative = alpha1_sigma_inv_LL - (Q_LU/Q_UU)*alpha1_sigma_inv_UL - ((alpha1_sigma_inv_LU  - (Q_LU/Q_UU) * alpha1_sigma_inv_UU) / Q_UU) * Q_UL;
         
-        alpha1_sigma_inv_derivative = alpha1_sigma_inv_LL - (alpha1_sigma_inv_LU / Q_UU) * Q_UL + ...
-            (Q_LU / Q_UU) * (alpha1_sigma_inv_UU / Q_UU) * Q_UL - (Q_LU / Q_UU) * alpha1_sigma_inv_UL;        
-        gradient_alpha1 = -((truth_aeronet - loc_prediction)' * alpha1_sigma_inv_derivative * (truth_aeronet - loc_prediction)) + ...
+        gradient_alpha1 = -0.5 * ((truth_aeronet - loc_prediction)' * alpha1_sigma_inv_derivative * (truth_aeronet - loc_prediction)) + ...
             (2 * forecast_misr' - loc_prediction'*alpha1_sigma_inv_derivative) * (truth_aeronet - loc_prediction) + ...
             0.5 * trace(sigma_star_inv \ alpha1_sigma_inv_derivative);
         clear alpha1_sigma_inv_LL alpha1_sigma_inv_LU alpha1_sigma_inv_UL alpha1_sigma_inv_UU
-       
-        alpha2_sigma_inv_derivative = alpha2_sigma_inv_LL - (alpha2_sigma_inv_LU / Q_UU) * Q_UL + ...
-            (Q_LU / Q_UU) * (alpha2_sigma_inv_UU / Q_UU) * Q_UL - (Q_LU / Q_UU) * alpha2_sigma_inv_UL;        
-        gradient_alpha2 = -((truth_aeronet - loc_prediction)' * alpha2_sigma_inv_derivative * (truth_aeronet - loc_prediction)) + ...
+        disp('yahoo again');
+        [gradient_alpha1]
+        
+        disp('yahoo');
+        %alpha2_sigma_inv_derivative = alpha2_sigma_inv_LL - (alpha2_sigma_inv_LU / Q_UU) * Q_UL + ...
+        %    (Q_LU / Q_UU) * (alpha2_sigma_inv_UU / Q_UU) * Q_UL - (Q_LU / Q_UU) * alpha2_sigma_inv_UL;        
+        alpha2_sigma_inv_derivative = alpha2_sigma_inv_LL - (Q_LU/Q_UU)*alpha2_sigma_inv_UL - ((alpha2_sigma_inv_LU  - (Q_LU/Q_UU) * alpha2_sigma_inv_UU) / Q_UU) * Q_UL;
+        
+        gradient_alpha2 = -0.5 * ((truth_aeronet - loc_prediction)' * alpha2_sigma_inv_derivative * (truth_aeronet - loc_prediction)) + ...
             (2 * forecast_modis' - loc_prediction'*alpha2_sigma_inv_derivative) * (truth_aeronet - loc_prediction) + ...
             0.5 * trace(sigma_star_inv \ alpha2_sigma_inv_derivative);
-        
+        [gradient_alpha2]
+        disp('yahoo again');
         clear alpha2_sigma_inv_LL alpha2_sigma_inv_LU alpha2_sigma_inv_UL alpha2_sigma_inv_UU
         
         % interaction parameter beta
-        
-        beta_sigma_inv_derivative = beta1_sigma_inv_LL - (beta1_sigma_inv_LU / Q_UU) * Q_UL + ...
-            (Q_LU / Q_UU) * (beta1_sigma_inv_UU / Q_UU) * Q_UL - (Q_LU / Q_UU) * beta1_sigma_inv_UL; 
+        disp('yahoo');
+        %beta_sigma_inv_derivative = beta1_sigma_inv_LL - (beta1_sigma_inv_LU / Q_UU) * Q_UL + ...
+        %    (Q_LU / Q_UU) * (beta1_sigma_inv_UU / Q_UU) * Q_UL - (Q_LU / Q_UU) * beta1_sigma_inv_UL; 
+        beta1_sigma_inv_derivative = beta1_sigma_inv_LL - (Q_LU/Q_UU)*beta1_sigma_inv_UL - ((beta1_sigma_inv_LU  - (Q_LU/Q_UU) * beta1_sigma_inv_UU) / Q_UU) * Q_UL;
         
         gradient_beta1 = ...
-         - 0.5 * (truth_aeronet + loc_prediction)' * beta_sigma_inv_derivative * (truth_aeronet - loc_prediction) + ...
-         0.5 * trace(sigma_star_inv \ beta_sigma_inv_derivative);
-
+         - 0.5 * (truth_aeronet + loc_prediction)' * beta1_sigma_inv_derivative * (truth_aeronet - loc_prediction) + ...
+         0.5 * trace(sigma_star_inv \ beta1_sigma_inv_derivative);
+        [gradient_beta1]
+        disp('yahoo again');
         clear beta1_sigma_inv_LL beta1_sigma_inv_LU beta1_sigma_inv_UL beta1_sigma_inv_UU
         
         gradient_alpha1_array(i) = gradient_alpha1;
@@ -278,11 +291,11 @@ while true
     alpha2 = alpha2_new;
     beta1 = beta1_new;
     
-    disp(delta_alpha1);
+    [alpha1 alpha2 beta1]
     
     %if (delta_alpha1 < 0.00000001 && delta_alpha2 < 0.00000001 && delta_beta1 < 0.00000001)
     if (delta_alpha1 < 0.00001 && delta_alpha2 < 0.00001 && delta_beta1 < 0.00001)
     %if (delta_alpha1 < 0.0000000001 && delta_alpha2 < 0.00000000001 && delta_beta1 < 0.00000000001)
         break;
     end;
-end;
+end

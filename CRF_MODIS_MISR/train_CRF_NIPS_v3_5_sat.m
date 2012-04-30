@@ -74,25 +74,23 @@ for iteration = 1 : num_iters
         
         num_points_modis = location_details(loc).count_measurements_modis;
         num_points_misr = location_details(loc).count_measurements_misr;
-        num_points_omi = location_details(loc).count_measurements_omi;
-        num_points_seawifs = location_details(loc).count_measurements_seawifs;
-        num_points_caliop = location_details(loc).count_measurements_caliop;
+        %num_points_omi = location_details(loc).count_measurements_omi;
+        %num_points_seawifs = location_details(loc).count_measurements_seawifs;
+        %num_points_caliop = location_details(loc).count_measurements_caliop;
         num_points_aeronet = location_details(loc).count_measurements_aeronet;
         
         if (num_points_aeronet == 0)
             % if no true readings here then move on
             continue;
         else
-            if (sum([num_points_modis num_points_misr num_points_omi num_points_seawifs num_points_caliop] ~= 0) < 2)
+            %if (sum([num_points_modis num_points_misr num_points_omi num_points_seawifs num_points_caliop] ~= 0) < 2)
                 % if only one satellite here then move on
-                continue;
-            end;
+            %    continue;
+            %end;
             count_NA_USA_valid = count_NA_USA_valid + 1;
         end;
 %         blah = [blah; loc];
-        if (isempty(find(temp_perm(1 : 50) == count_NA_USA_valid, 1)))
-            continue;
-        end;
+        
 %         
 %         num_points_modis1(count_NA_USA_valid) = location_details(loc).count_measurements_modis;
 %         num_points_misr1(count_NA_USA_valid) = location_details(loc).count_measurements_misr;
@@ -105,25 +103,24 @@ for iteration = 1 : num_iters
         truth_aeronet = location_details(loc).measurements_aeronet;
         forecast_modis = location_details(loc).measurements_modis;
         forecast_misr = location_details(loc).measurements_misr;
-        forecast_omi = location_details(loc).measurements_omi;
-        forecast_seawifs = location_details(loc).measurements_seawifs;
-        forecast_caliop = location_details(loc).measurements_caliop;
+        %forecast_omi = location_details(loc).measurements_omi;
+        %forecast_seawifs = location_details(loc).measurements_seawifs;
+        %forecast_caliop = location_details(loc).measurements_caliop;
         
         % indicators, if 0 then there is no prediction for that instance
         indicator_modis = (forecast_modis ~= 0);
         indicator_misr = (forecast_misr ~= 0);
-        indicator_omi = (forecast_omi ~= 0);
-        indicator_seawifs = (forecast_seawifs ~= 0);
-        indicator_caliop = (forecast_caliop ~= 0);
+        %indicator_omi = (forecast_omi ~= 0);
+        %%indicator_seawifs = (forecast_seawifs ~= 0);
+        %indicator_caliop = (forecast_caliop ~= 0);
         indicator_labeled = (truth_aeronet ~= 0);
         indicator_unlabeled = (truth_aeronet == 0);
         
-        Q1 = alpha1 * spdiags(indicator_modis, 0, len, len) + alpha2 * spdiags(indicator_misr, 0, len, len) + alpha3 * spdiags(indicator_omi, 0, len, len) + ...
-            alpha4 * spdiags(indicator_seawifs, 0, len, len) + alpha5 * spdiags(indicator_caliop, 0, len, len);
+        Q1 = alpha1 * spdiags(indicator_modis, 0, len, len) + alpha2 * spdiags(indicator_misr, 0, len, len) ;
         Q2 = beta * aaaa_create_sparse_tridiagonal_matrix_for_beta(len);
 
         sigma_inv = 2 * (Q1 + Q2);
-        b = 2 * (alpha1 * forecast_modis + alpha2 * forecast_misr + alpha3 * forecast_omi + alpha4 * forecast_seawifs + alpha5 * forecast_caliop);
+        b = 2 * (alpha1 * forecast_modis + alpha2 * forecast_misr);
         
         Q_LL = sigma_inv(indicator_labeled, indicator_labeled);
         Q_UU = sigma_inv(indicator_unlabeled, indicator_unlabeled);
@@ -158,27 +155,7 @@ for iteration = 1 : num_iters
             (2 * forecast_misr(indicator_labeled)' - mju_star' * alpha2_sigma_inv_derivative) * (truth_aeronet(indicator_labeled) - mju_star) + ...
             0.5 * trace(sigma_star_inv \ alpha2_sigma_inv_derivative);
 
-        alpha3_sigma_inv = 2 * spdiags(indicator_omi, 0, len, len);
-        alpha3_sigma_inv_derivative = alpha3_sigma_inv(indicator_labeled, indicator_labeled) - (alpha3_sigma_inv(indicator_labeled, indicator_unlabeled) / Q_UU) * Q_UL + ...
-            (Q_LU / Q_UU) * (alpha3_sigma_inv(indicator_unlabeled, indicator_unlabeled) / Q_UU) * Q_UL - (Q_LU / Q_UU) * alpha3_sigma_inv(indicator_unlabeled, indicator_labeled);        
-        gradient_alpha3(loc) = -0.5 * (truth_aeronet(indicator_labeled) - mju_star)' * alpha3_sigma_inv_derivative * (truth_aeronet(indicator_labeled) - mju_star) + ...
-            (2 * forecast_omi(indicator_labeled)' - mju_star' * alpha3_sigma_inv_derivative) * (truth_aeronet(indicator_labeled) - mju_star) + ...
-            0.5 * trace(sigma_star_inv \ alpha3_sigma_inv_derivative);
-
-        alpha4_sigma_inv = 2 * spdiags(indicator_seawifs, 0, len, len);
-        alpha4_sigma_inv_derivative = alpha4_sigma_inv(indicator_labeled, indicator_labeled) - (alpha4_sigma_inv(indicator_labeled, indicator_unlabeled) / Q_UU) * Q_UL + ...
-            (Q_LU / Q_UU) * (alpha4_sigma_inv(indicator_unlabeled, indicator_unlabeled) / Q_UU) * Q_UL - (Q_LU / Q_UU) * alpha4_sigma_inv(indicator_unlabeled, indicator_labeled);        
-        gradient_alpha4(loc) = -0.5 * (truth_aeronet(indicator_labeled) - mju_star)' * alpha4_sigma_inv_derivative * (truth_aeronet(indicator_labeled) - mju_star) + ...
-            (2 * forecast_seawifs(indicator_labeled)' - mju_star' * alpha4_sigma_inv_derivative) * (truth_aeronet(indicator_labeled) - mju_star) + ...
-            0.5 * trace(sigma_star_inv \ alpha4_sigma_inv_derivative);
-
-        alpha5_sigma_inv = 2 * spdiags(indicator_caliop, 0, len, len);
-        alpha5_sigma_inv_derivative = alpha5_sigma_inv(indicator_labeled, indicator_labeled) - (alpha5_sigma_inv(indicator_labeled, indicator_unlabeled) / Q_UU) * Q_UL + ...
-            (Q_LU / Q_UU) * (alpha5_sigma_inv(indicator_unlabeled, indicator_unlabeled) / Q_UU) * Q_UL - (Q_LU / Q_UU) * alpha5_sigma_inv(indicator_unlabeled, indicator_labeled);        
-        gradient_alpha5(loc) = -0.5 * (truth_aeronet(indicator_labeled) - mju_star)' * alpha5_sigma_inv_derivative * (truth_aeronet(indicator_labeled) - mju_star) + ...
-            (2 * forecast_caliop(indicator_labeled)' - mju_star' * alpha5_sigma_inv_derivative) * (truth_aeronet(indicator_labeled) - mju_star) + ...
-            0.5 * trace(sigma_star_inv \ alpha5_sigma_inv_derivative);
-
+        
         beta_sigma_inv = 2 * aaaa_create_sparse_tridiagonal_matrix_for_beta(len);
         beta_sigma_inv_derivative = beta_sigma_inv(indicator_labeled, indicator_labeled) - (beta_sigma_inv(indicator_labeled, indicator_unlabeled) / Q_UU) * Q_UL + ...
             (Q_LU / Q_UU) * (beta_sigma_inv(indicator_unlabeled, indicator_unlabeled) / Q_UU) * Q_UL - (Q_LU / Q_UU) * beta_sigma_inv(indicator_unlabeled, indicator_labeled); 
