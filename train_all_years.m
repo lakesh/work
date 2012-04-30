@@ -142,43 +142,19 @@ colloc_datas = cell(total_years,1);
 
 colloc_datas{1} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2007.mat');
 
-colloc_indexes = cell(total_years,1);
-uncolloc_indexes = cell(total_years,1);
+labelled_indexes = cell(total_years,1);
+unlabelled_indexes = cell(total_years,1);
 
-len=zeros(total_years,1);
-for i=1:total_years
-    data = colloc_datas{i}.collocated_misr_modis_aeronet;
-    labelled = find(data(:,3) ~= 0);
-    len(i) =  size(labelled,1);
-end
+
 
 for i=1:total_years
     data = colloc_datas{i}.collocated_misr_modis_aeronet;
-    colloc_indexes{i}.colloc_index = find(data(:,3) ~= 0);
-    uncolloc_indexes{i}.uncolloc_index = linearMatrix(:,4);
-    uncolloc_indexes{i}.uncolloc_index(colloc_indexes{i}.colloc_index,:)=[];
-end
-
-QLL_Spatial = cell(total_years,1);
-QLU_Spatial = cell(total_years,1);
-QUL_Spatial = cell(total_years,1);
-QUU_Spatial = cell(total_years,1);
-
-for i=1:total_years
-    QLL_Spatial{i} = QSpatial(colloc_indexes{i}.colloc_index,:);
-    QLL_Spatial{i} = QLL_Spatial{i}(:,colloc_indexes{i}.colloc_index);
-    QUU_Spatial{i} = QSpatial(uncolloc_indexes{i}.uncolloc_index,:);
-    QUU_Spatial{i} = QUU_Spatial{i}(:,uncolloc_indexes{i}.uncolloc_index);
-    QUL_Spatial{i} = QSpatial(uncolloc_indexes{i}.uncolloc_index,:);
-    QUL_Spatial{i} = QUL_Spatial{i}(:,colloc_indexes{i}.colloc_index);
-    QLU_Spatial{i} = QSpatial(colloc_indexes{i}.colloc_index,:);
-    QLU_Spatial{i} = QLU_Spatial{i}(:,uncolloc_indexes{i}.uncolloc_index);
+    labelled_indexes{i}.labelled_index = find(data(:,3) ~= 0);
+    unlabelled_indexes{i}.unlabelled_index = linearMatrix(:,4);
+    unlabelled_indexes{i}.unlabelled_index(labelled_indexes{i}.labelled_index,:)=[];
 end
     
-Q2=cell(total_years,1);
-for i=1:total_years
-     Q2{i} = (QLL_Spatial{i}-QLU_Spatial{i}*(QUU_Spatial{i}\QUL_Spatial{i}));
-end
+len = days*N;
 
 % train CRF
 while true
@@ -194,36 +170,95 @@ while true
         forecast_modis = colloc_data(labelled, 2);
         forecast_misr = colloc_data(labelled, 1);
 
+        
         indicator_modis = (forecast_modis ~= 0);
         indicator_misr = (forecast_misr ~= 0);
-        indicator_dummy = (forecast_misr == forecast_misr);
-
-        Q1 = alpha1 * spdiags(indicator_misr, 0, len, len) + alpha2 * spdiags(indicator_modis, 0, len, len) + alpha3 * spdiags(indicator_dummy, 0, len, len);
-      
-        %Q2 = beta1*(QLL_Spatial{i}-QLU_Spatial{i}*(QUU_Spatial{i}\QUL_Spatial{i}));
-        Q2_i = beta1*Q2{i};
-
-        sigma_inv = 2 * (Q1 + Q2_i);
         
-        b = 2 * (alpha1 * spdiags(indicator_misr, 0, len, len) * forecast_misr + alpha2 * spdiags(indicator_modis, 0, len, len) * forecast_modis);
+        indicator_modis_whole = (colloc_data(:,1) ~= 0);
+        indicator_misr_whole = (colloc_data(:,2) ~= 0);
+        indicator_dummy_whole = (colloc_data(:,2) == colloc_data(:,2));
+
+        Q1 = alpha1 * spdiags(indicator_misr_whole, 0, len, len) + alpha2 * spdiags(indicator_modis_whole, 0, len, len) + alpha3 * spdiags(indicator_dummy_whole, 0, len, len);
+        Q2 = beta1*QSpatial;
+        sigma_inv = 2 * (Q1 + Q2);
+        
+        Q_LL = sigma_inv(labelled_indexes{i}.labelled_index,:);
+        Q_LL = Q_LL(:,labelled_indexes{i}.labelled_index);
+        Q_UU = sigma_inv(unlabelled_indexes{i}.unlabelled_index, :);
+        Q_UU = Q_UU(:,unlabelled_indexes{i}.unlabelled_index);
+        Q_LU = sigma_inv(labelled_indexes{i}.labelled_index, :);
+        Q_LU = Q_LU(:, unlabelled_indexes{i}.unlabelled_index);
+        Q_UL = sigma_inv(unlabelled_indexes{i}.unlabelled_index,:);
+        Q_UL = Q_UL(:, labelled_indexes{i}.labelled_index);
+        
+        sigma_star_inv = Q_LL - (Q_LU / Q_UU) * Q_UL;
+        
+        labelled_size = size(forecast_misr,1);
+        b = 2 * (alpha1 * spdiags(indicator_misr, 0, labelled_size, labelled_size) * forecast_misr + alpha2 * spdiags(indicator_modis, 0, labelled_size, labelled_size) * forecast_modis);
    
-        loc_prediction = sigma_inv\b;
+        loc_prediction = sigma_star_inv\b;
 
 
         % association parameters alpha 
-        gradient_alpha1 = -((truth_aeronet - loc_prediction)' * spdiags(indicator_misr, 0, len, len) * (truth_aeronet - loc_prediction)) + ...
-            2 * (forecast_misr' - loc_prediction'*spdiags(indicator_misr, 0, len, len)) * (truth_aeronet - loc_prediction) + ...
-            trace(sigma_inv\spdiags(indicator_misr, 0, len, len));
-
-        gradient_alpha2 = -((truth_aeronet - loc_prediction)' * spdiags(indicator_misr, 0, len, len) * (truth_aeronet - loc_prediction)) + ...
-            2 * (forecast_modis' - loc_prediction'*spdiags(indicator_modis, 0, len, len)) * (truth_aeronet - loc_prediction) + ...
-            trace(sigma_inv\spdiags(indicator_modis, 0, len, len)); 
-
+        alpha1_sigma_inv = 2 * spdiags(indicator_misr_whole, 0, len, len);
+        alpha1_sigma_inv_LL = alpha1_sigma_inv(labelled_indexes{i}.labelled_index,:);
+        alpha1_sigma_inv_LL = alpha1_sigma_inv_LL(:,labelled_indexes{i}.labelled_index);
+        alpha1_sigma_inv_LU = alpha1_sigma_inv(labelled_indexes{i}.labelled_index,:);
+        alpha1_sigma_inv_LU = alpha1_sigma_inv_LU(:,unlabelled_indexes{i}.unlabelled_index);
+        alpha1_sigma_inv_UL = alpha1_sigma_inv(unlabelled_indexes{i}.unlabelled_index,:);
+        alpha1_sigma_inv_UL = alpha1_sigma_inv_UL(:,labelled_indexes{i}.labelled_index);
+        alpha1_sigma_inv_UU = alpha1_sigma_inv(unlabelled_indexes{i}.unlabelled_index,:);
+        alpha1_sigma_inv_UU = alpha1_sigma_inv_UU(:,unlabelled_indexes{i}.unlabelled_index);
+        
+        alpha2_sigma_inv = 2 * spdiags(indicator_modis_whole, 0, len, len);
+        alpha2_sigma_inv_LL = alpha2_sigma_inv(labelled_indexes{i}.labelled_index,:);
+        alpha2_sigma_inv_LL = alpha2_sigma_inv_LL(:,labelled_indexes{i}.labelled_index);
+        alpha2_sigma_inv_LU = alpha2_sigma_inv(labelled_indexes{i}.labelled_index,:);
+        alpha2_sigma_inv_LU = alpha2_sigma_inv_LU(:,unlabelled_indexes{i}.unlabelled_index);
+        alpha2_sigma_inv_UL = alpha2_sigma_inv(unlabelled_indexes{i}.unlabelled_index,:);
+        alpha2_sigma_inv_UL = alpha2_sigma_inv_UL(:,labelled_indexes{i}.labelled_index);
+        alpha2_sigma_inv_UU = alpha2_sigma_inv(unlabelled_indexes{i}.unlabelled_index,:);
+        alpha2_sigma_inv_UU = alpha2_sigma_inv_UU(:,unlabelled_indexes{i}.unlabelled_index);
+        
+        beta1_sigma_inv = 2*QSpatial;
+        beta1_sigma_inv_LL = beta1_sigma_inv(labelled_indexes{i}.labelled_index,:);
+        beta1_sigma_inv_LL = beta1_sigma_inv_LL(:,labelled_indexes{i}.labelled_index);
+        beta1_sigma_inv_LU = beta1_sigma_inv(labelled_indexes{i}.labelled_index,:);
+        beta1_sigma_inv_LU = beta1_sigma_inv_LU(:,unlabelled_indexes{i}.unlabelled_index);
+        beta1_sigma_inv_UL = beta1_sigma_inv(unlabelled_indexes{i}.unlabelled_index,:);
+        beta1_sigma_inv_UL = beta1_sigma_inv_UL(:,labelled_indexes{i}.labelled_index);
+        beta1_sigma_inv_UU = beta1_sigma_inv(unlabelled_indexes{i}.unlabelled_index,:);
+        beta1_sigma_inv_UU = beta1_sigma_inv_UU(:,unlabelled_indexes{i}.unlabelled_index);
+        
+        
+        clear labelled_index unlabelled_indexes linearMatrix
+        
+        alpha1_sigma_inv_derivative = alpha1_sigma_inv_LL - (alpha1_sigma_inv_LU / Q_UU) * Q_UL + ...
+            (Q_LU / Q_UU) * (alpha1_sigma_inv_UU / Q_UU) * Q_UL - (Q_LU / Q_UU) * alpha1_sigma_inv_UL;        
+        gradient_alpha1 = -((truth_aeronet - loc_prediction)' * alpha1_sigma_inv_derivative * (truth_aeronet - loc_prediction)) + ...
+            (2 * forecast_misr' - loc_prediction'*alpha1_sigma_inv_derivative) * (truth_aeronet - loc_prediction) + ...
+            0.5 * trace(sigma_star_inv \ alpha1_sigma_inv_derivative);
+        clear alpha1_sigma_inv_LL alpha1_sigma_inv_LU alpha1_sigma_inv_UL alpha1_sigma_inv_UU
+       
+        alpha2_sigma_inv_derivative = alpha2_sigma_inv_LL - (alpha2_sigma_inv_LU / Q_UU) * Q_UL + ...
+            (Q_LU / Q_UU) * (alpha2_sigma_inv_UU / Q_UU) * Q_UL - (Q_LU / Q_UU) * alpha2_sigma_inv_UL;        
+        gradient_alpha2 = -((truth_aeronet - loc_prediction)' * alpha2_sigma_inv_derivative * (truth_aeronet - loc_prediction)) + ...
+            (2 * forecast_modis' - loc_prediction'*alpha2_sigma_inv_derivative) * (truth_aeronet - loc_prediction) + ...
+            0.5 * trace(sigma_star_inv \ alpha2_sigma_inv_derivative);
+        
+        clear alpha2_sigma_inv_LL alpha2_sigma_inv_LU alpha2_sigma_inv_UL alpha2_sigma_inv_UU
+        
         % interaction parameter beta
+        
+        beta_sigma_inv_derivative = beta1_sigma_inv_LL - (beta1_sigma_inv_LU / Q_UU) * Q_UL + ...
+            (Q_LU / Q_UU) * (beta1_sigma_inv_UU / Q_UU) * Q_UL - (Q_LU / Q_UU) * beta1_sigma_inv_UL; 
+        
         gradient_beta1 = ...
-         - (truth_aeronet + loc_prediction)' * Q2_i/beta1 * (truth_aeronet - loc_prediction) + ...
-         trace(sigma_inv\(Q2_i/beta1));
+         - 0.5 * (truth_aeronet + loc_prediction)' * beta_sigma_inv_derivative * (truth_aeronet - loc_prediction) + ...
+         0.5 * trace(sigma_star_inv \ beta_sigma_inv_derivative);
 
+        clear beta1_sigma_inv_LL beta1_sigma_inv_LU beta1_sigma_inv_UL beta1_sigma_inv_UU
+        
         gradient_alpha1_array(i) = gradient_alpha1;
         gradient_alpha2_array(i) = gradient_alpha2;
         gradient_beta1_array(i) = gradient_beta1;
@@ -231,9 +266,9 @@ while true
     end
     
     % apply gradient information
-    alpha1_new = exp(log(alpha1) + learning_rate * alpha1 * (sum(gradient_alpha1_array)));
-    alpha2_new = exp(log(alpha2) + learning_rate * alpha2 * (sum(gradient_alpha2_array)));
-    beta1_new = exp(log(beta1) + learning_rate * beta1 * (sum(gradient_beta1_array)));
+    alpha1_new = exp(log(alpha1) + learning_rate * alpha1 * (sum(gradient_alpha1_array) - alpha1));
+    alpha2_new = exp(log(alpha2) + learning_rate * alpha2 * (sum(gradient_alpha2_array) - alpha2));
+    beta1_new = exp(log(beta1) + learning_rate * beta1 * (sum(gradient_beta1_array) - beta1));
 
     delta_alpha1 = abs(alpha1_new - alpha1);
     delta_alpha2 = abs(alpha2_new - alpha2);
