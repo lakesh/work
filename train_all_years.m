@@ -26,11 +26,14 @@ alpha3 = 0.001;
 
 row = 9;
 column = 13;
-days = 365;
-numberOfDays = 365;
+days = 91;
+numberOfDays = 91;
 
 N = row*column;
 
+objective_function=zeros(38429,1);
+alpha1_array=zeros(38429,1);
+alpha2_array=zeros(38429,1);
 
 % Matrix to hold the index for each data point 
 linearMatrix = zeros(row*column*numberOfDays,4);
@@ -101,9 +104,9 @@ end
 
 [m n] = size(sparseIndexX);
 
-sparseIndexX_WholeYear = zeros(m*365,1);
-sparseIndexY_WholeYear = zeros(m*365,1);
-sparseIndexValue_WholeYear = zeros(m*365,1);
+sparseIndexX_WholeYear = zeros(m*days,1);
+sparseIndexY_WholeYear = zeros(m*days,1);
+sparseIndexValue_WholeYear = zeros(m*days,1);
 
 sparseIndexX_WholeYear(1:m,1)=sparseIndexX(1:m,1);
 sparseIndexY_WholeYear(1:m,1)=sparseIndexY(1:m,1);
@@ -116,7 +119,7 @@ for day=1:days-1
 end
 
 
-QSpatial = sparse(sparseIndexX_WholeYear', sparseIndexY_WholeYear', sparseIndexValue_WholeYear', N*365, N*365);
+QSpatial = sparse(sparseIndexX_WholeYear', sparseIndexY_WholeYear', sparseIndexValue_WholeYear', N*days, N*days);
 
 clear sparseIndexValue sparseIndexValue_WholeYear sparseIndexX sparseIndexX_WholeYear sparseIndexY sparseIndexY_WholeYear
 %%%%%%%%%%%%%%%% End of calculating QSpatial %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -128,7 +131,7 @@ clear sparseIndexValue sparseIndexValue_WholeYear sparseIndexX sparseIndexX_Whol
 years=[2004 2005 2006 2007];
 
 %total_years = 4;
-total_years = 4;
+total_years = 1;
 
 gradient_alpha1_array=zeros(total_years,1);
 gradient_alpha2_array=zeros(total_years,1);
@@ -140,11 +143,12 @@ colloc_datas = cell(total_years,1);
 %colloc_datas{3} = load('/work/collocated_MISR_MODIS_AERONET_2005.mat');
 %colloc_datas{4} = load('/work/collocated_MISR_MODIS_AERONET_2007.mat');
 
-colloc_datas{1} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2004.mat');
-colloc_datas{2} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2005.mat');
-colloc_datas{3} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2006.mat');
-colloc_datas{4} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2007.mat');
-
+%colloc_datas{1} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2004.mat');
+%colloc_datas{2} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2005.mat');
+%colloc_datas{3} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2006.mat');
+%colloc_datas{4} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2007.mat');
+%colloc_datas{1}.collocated_misr_modis_aeronet = collocated_misr_modis_aeronet;
+colloc_datas{1}.collocated_misr_modis_aeronet = colloc_data;
 labelled_indexes = cell(total_years,1);
 unlabelled_indexes = cell(total_years,1);
 
@@ -160,9 +164,9 @@ end
 len = days*N;
 
 % train CRF
-while true
-    tic;
-        
+tic;
+%while true
+for iter=1:38429
     for i=1:total_years
         year = years(i);
         %load(['/work/collocated_MISR_MODIS_AERONET_' num2str(year) '.mat']);
@@ -184,6 +188,7 @@ while true
         Q1 = alpha1 * spdiags(indicator_misr_whole, 0, len, len) + alpha2 * spdiags(indicator_modis_whole, 0, len, len) + alpha3 * spdiags(indicator_dummy_whole, 0, len, len);
         Q2 = beta1*QSpatial;
         sigma_inv = 2 * (Q1 + Q2);
+        %sigma_inv = 2 * (Q1);
         
         Q_LL = sigma_inv(labelled_indexes{i}.labelled_index,:);
         Q_LL = Q_LL(:,labelled_indexes{i}.labelled_index);
@@ -235,7 +240,7 @@ while true
         
         
         clear  linearMatrix
-        disp('yahoo');
+        
         %alpha1_sigma_inv_derivative = alpha1_sigma_inv_LL - (alpha1_sigma_inv_LU / Q_UU) * Q_UL + ...
         %    (Q_LU / Q_UU) * (alpha1_sigma_inv_UU / Q_UU) * Q_UL - (Q_LU / Q_UU) * alpha1_sigma_inv_UL;        
         alpha1_sigma_inv_derivative = alpha1_sigma_inv_LL - (Q_LU/Q_UU)*alpha1_sigma_inv_UL - ((alpha1_sigma_inv_LU  - (Q_LU/Q_UU) * alpha1_sigma_inv_UU) / Q_UU) * Q_UL;
@@ -244,10 +249,9 @@ while true
             (2 * forecast_misr' - loc_prediction'*alpha1_sigma_inv_derivative) * (truth_aeronet - loc_prediction) + ...
             0.5 * trace(sigma_star_inv \ alpha1_sigma_inv_derivative);
         clear alpha1_sigma_inv_LL alpha1_sigma_inv_LU alpha1_sigma_inv_UL alpha1_sigma_inv_UU
-        disp('yahoo again');
+        
         [gradient_alpha1]
         
-        disp('yahoo');
         %alpha2_sigma_inv_derivative = alpha2_sigma_inv_LL - (alpha2_sigma_inv_LU / Q_UU) * Q_UL + ...
         %    (Q_LU / Q_UU) * (alpha2_sigma_inv_UU / Q_UU) * Q_UL - (Q_LU / Q_UU) * alpha2_sigma_inv_UL;        
         alpha2_sigma_inv_derivative = alpha2_sigma_inv_LL - (Q_LU/Q_UU)*alpha2_sigma_inv_UL - ((alpha2_sigma_inv_LU  - (Q_LU/Q_UU) * alpha2_sigma_inv_UU) / Q_UU) * Q_UL;
@@ -256,11 +260,9 @@ while true
             (2 * forecast_modis' - loc_prediction'*alpha2_sigma_inv_derivative) * (truth_aeronet - loc_prediction) + ...
             0.5 * trace(sigma_star_inv \ alpha2_sigma_inv_derivative);
         [gradient_alpha2]
-        disp('yahoo again');
         clear alpha2_sigma_inv_LL alpha2_sigma_inv_LU alpha2_sigma_inv_UL alpha2_sigma_inv_UU
         
         % interaction parameter beta
-        disp('yahoo');
         %beta_sigma_inv_derivative = beta1_sigma_inv_LL - (beta1_sigma_inv_LU / Q_UU) * Q_UL + ...
         %    (Q_LU / Q_UU) * (beta1_sigma_inv_UU / Q_UU) * Q_UL - (Q_LU / Q_UU) * beta1_sigma_inv_UL; 
         beta1_sigma_inv_derivative = beta1_sigma_inv_LL - (Q_LU/Q_UU)*beta1_sigma_inv_UL - ((beta1_sigma_inv_LU  - (Q_LU/Q_UU) * beta1_sigma_inv_UU) / Q_UU) * Q_UL;
@@ -269,7 +271,7 @@ while true
          - 0.5 * (truth_aeronet + loc_prediction)' * beta1_sigma_inv_derivative * (truth_aeronet - loc_prediction) + ...
          0.5 * trace(sigma_star_inv \ beta1_sigma_inv_derivative);
         [gradient_beta1]
-        disp('yahoo again');
+        
         clear beta1_sigma_inv_LL beta1_sigma_inv_LU beta1_sigma_inv_UL beta1_sigma_inv_UU
         
         gradient_alpha1_array(i) = gradient_alpha1;
@@ -279,9 +281,9 @@ while true
     end
     
     % apply gradient information
-    alpha1_new = exp(log(alpha1) + learning_rate * alpha1 * (sum(gradient_alpha1_array) - alpha1));
-    alpha2_new = exp(log(alpha2) + learning_rate * alpha2 * (sum(gradient_alpha2_array) - alpha2));
-    beta1_new = exp(log(beta1) + learning_rate * beta1 * (sum(gradient_beta1_array) - beta1));
+    alpha1_new = exp(log(alpha1) + learning_rate * alpha1 * (sum(gradient_alpha1_array)));% - 0.01*alpha1));
+    alpha2_new = exp(log(alpha2) + learning_rate * alpha2 * (sum(gradient_alpha2_array)));% - 0.01*alpha2));
+    beta1_new = exp(log(beta1) + learning_rate * beta1 * (sum(gradient_beta1_array)));% - 0.01*beta1));
 
     delta_alpha1 = abs(alpha1_new - alpha1);
     delta_alpha2 = abs(alpha2_new - alpha2);
@@ -290,12 +292,19 @@ while true
     alpha1 = alpha1_new;
     alpha2 = alpha2_new;
     beta1 = beta1_new;
+    F = -0.5*(truth_aeronet-loc_prediction)'*sigma_star_inv*(truth_aeronet-loc_prediction) + 0.5*(2 * sum(log(diag(chol(sigma_star_inv)))));
+    [F]
+    objective_function(iter)=F;
+    alpha1_array(iter)=alpha1;
+    alpha2_array(iter)=alpha2;
     
-    [alpha1 alpha2 beta1]
-    
+    [delta_alpha1 delta_alpha2 delta_beta1 alpha1 alpha2 beta1]
+    %pause
     %if (delta_alpha1 < 0.00000001 && delta_alpha2 < 0.00000001 && delta_beta1 < 0.00000001)
     if (delta_alpha1 < 0.00001 && delta_alpha2 < 0.00001 && delta_beta1 < 0.00001)
     %if (delta_alpha1 < 0.0000000001 && delta_alpha2 < 0.00000000001 && delta_beta1 < 0.00000000001)
         break;
-    end;
-end
+    end; 
+end   
+%end
+toc

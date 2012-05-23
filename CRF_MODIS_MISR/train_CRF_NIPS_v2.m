@@ -45,12 +45,13 @@ modis_misr_ratio = num_points_modis / num_points_misr;
 
 % train CRF
 
-for iteration=1:10000
+while true
     tic;
+        collocatedData = colloc_datas{1}.collocated_misr_modis_aeronet;    
         [row column] = size(collocatedData);
         len = row;
-        truth_aeronet = collocatedData(:,5);
-        forecast_modis = collocatedData(:,3);
+        truth_aeronet = collocatedData(:,3);
+        forecast_modis = collocatedData(:,2);
         forecast_misr = collocatedData(:,1);
         
         % indicators, if 0 then there is no prediction for that instance
@@ -61,7 +62,7 @@ for iteration=1:10000
         
         alpha3 = 0.001;
         forecast_dummy = 0;
-        Q1 = alpha1 * spdiags(indicator_modis, 0, len, len) + alpha2 * spdiags(indicator_misr, 0, len, len);
+        Q1 = alpha1 * spdiags(indicator_modis, 0, len, len) + alpha2 * spdiags(indicator_misr, 0, len, len) +  alpha3 * spdiags(indicator_dummy, 0, len, len);
         
         
         %for i=1:row
@@ -74,7 +75,7 @@ for iteration=1:10000
 %         sparse_tridiag_sigma = aaaa_inverse_tridiagonal_get_only_diagonals(sigma_inv);
         
         %loc_prediction = computeMi(sigma_inv, b);
-        loc_prediction = (alpha1*forecast_modis+alpha2*forecast_misr)/(alpha1 + alpha2);
+        loc_prediction = sigma_inv\b;
 
         % association parameters alpha        
         gradient_alpha1 = -0.5 * sum(((truth_aeronet - loc_prediction) .* indicator_modis) .^ 2) + ...
@@ -102,11 +103,8 @@ for iteration=1:10000
     % apply gradient information    
     alpha1 = exp(log(alpha1) + learning_rate * alpha1 * (gradient_alpha1));
     alpha2 = exp(log(alpha2) +  learning_rate * alpha2 * (gradient_alpha2));
-    pause
-    [loc_prediction]
-    alpha1
-    alpha2
     
+   
     
     %alpha1s(iteration) = alpha1
     %alpha2s(iteration) = alpha2

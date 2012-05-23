@@ -27,14 +27,15 @@ alpha1 = init_params;
 alpha2 = init_params;
 % beta = init_params;
 
+colloc_data = colloc_datas{1}.collocated_misr_modis_aeronet;
 alpha3 = 0.001;
 len = size(colloc_data, 1);
-
+iter = 0;
 % train CRF
 while true
     tic;
-    truth_aeronet = colloc_data(:, 5);
-    forecast_modis = colloc_data(:, 3);
+    truth_aeronet = colloc_data(:, 3);
+    forecast_modis = colloc_data(:, 2);
     forecast_misr = colloc_data(:, 1);
     
     indicator_modis = (forecast_modis ~= 0);
@@ -57,7 +58,7 @@ while true
         2 * (forecast_misr' - loc_prediction'*spdiags(indicator_misr, 0, len, len)) * (truth_aeronet - loc_prediction) + ...
         trace(sigma_inv\spdiags(indicator_misr, 0, len, len));
 
-    gradient_alpha2 = -((truth_aeronet - loc_prediction)' * spdiags(indicator_misr, 0, len, len) * (truth_aeronet - loc_prediction)) + ...
+    gradient_alpha2 = -((truth_aeronet - loc_prediction)' * spdiags(indicator_modis, 0, len, len) * (truth_aeronet - loc_prediction)) + ...
         2 * (forecast_modis' - loc_prediction'*spdiags(indicator_modis, 0, len, len)) * (truth_aeronet - loc_prediction) + ...
         trace(sigma_inv\spdiags(indicator_modis, 0, len, len));
 
@@ -81,8 +82,9 @@ while true
     alpha2 = alpha2_new;
     %beta = beta_new;
     
-    disp(delta_alpha1);
     
+    [delta_alpha1 delta_alpha2 alpha1 alpha2]
+    %pause
     %alpha1_array(iteration) = alpha1;
     %alpha2_array(iteration) = alpha2;
     
@@ -92,9 +94,12 @@ while true
     %if (delta_alpha1 < 0.0000000001 && delta_alpha2 < 0.00000000001 && delta_beta < 0.00000000001)
     %    break;
     %end;
-    if (delta_alpha1 < 0.000001 && delta_alpha2 < 0.000001) %&& delta_beta < 0.000001)
+    if (delta_alpha1 < 0.000000001 && delta_alpha2 < 0.000000001) %&& delta_beta < 0.000001)
        break; 
     end
+    
+    iter = iter + 1;
+    
 %     [truth_aeronet'; forecast_modis'; forecast_misr'; loc_prediction']
  	
 %     pause;

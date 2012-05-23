@@ -1,41 +1,25 @@
-row=9;
-column=13;
+alpha1=1;
+alpha2=1;
+beta1=1;
+
+global len learning_rate alpha3 row column days numberOfDays N linearMatrix index sparseIndexX sparseIndexY sparseIndexValue sparseIndexX_WholeYear sparseIndexY_WholeYear sparseIndexValue_WholeYear colloc_datas QSpatial labelled_indexes unlabelled_indexes
+learning_rate = 0.0001;
+
+alpha3 = 0.001;
+
+row = 9;
+column = 13;
 days = 365;
+numberOfDays = 365;
 
-alpha1=124.0082;
-alpha2=101.4777;
-%alpha1=1;
-%alpha2=0;
+N = row*column;
 
-beta1=29.6218;
-beta2=0;
-alpha3=0.001;
-
-
-%Default AOD value for the dummy predictor
-default_predicted = 0;
-
-
-%Load the data
-load('collocated_MISR_MODIS_AERONET_NEW_2004.mat');
-data=collocated_misr_modis_aeronet;
-
-%Initialize the b matrix
-% alpha*indicatorfunction*AODvalue
-b = zeros(days*column*row,1);
-for i=1:days*row*column
-    b(i,1) = 2*(data(i,1)* alpha1 + data(i,2) * alpha2);
-    %b(i,1) = 2*(data(i,1) * alpha2 + data(i,3) * alpha1);
-end
-
-%Replace the NaN values by 0
-%b(isnan(b(:,1)),:) = 0;
 
 % Matrix to hold the index for each data point 
-linearMatrix = zeros(row*column*days,4);
+linearMatrix = zeros(row*column*numberOfDays,4);
 index = 1;
 
-for day=1:days
+for day=1:numberOfDays
     for i=1:row
         for j=1:column
             linearMatrix(index,1) = i;
@@ -46,11 +30,7 @@ for day=1:days
         end
     end
 end
-
-N = row*column;
-
-index = 1;
-
+%%%%%%%%%%%%%%%%Start calculating QSpatial %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %We calculate the precision matrix for a single day only
 %Then replicate the same matrix through out the year
 
@@ -120,34 +100,41 @@ end
 
 
 QSpatial = sparse(sparseIndexX_WholeYear', sparseIndexY_WholeYear', sparseIndexValue_WholeYear', N*days, N*days);
-Q2=beta1*QSpatial;
+
 clear sparseIndexValue sparseIndexValue_WholeYear sparseIndexX sparseIndexX_WholeYear sparseIndexY sparseIndexY_WholeYear
+%%%%%%%%%%%%%%%% End of calculating QSpatial %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%years=[2004 2005 2006 2007];
+%years=[2003 2004 2005 2007];
+%years=[2003 2004 2005 2006];
+years=[2004 2005 2006 2007];
+
+total_years = 1;
+%total_years = 1;
+
+colloc_datas = cell(total_years,1);
+%colloc_datas{1} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2005.mat');
+%colloc_datas{2} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2006.mat');
+%colloc_datas{3} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2007.mat');
+%colloc_datas{4} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2004.mat');
+colloc_datas{1}.collocated_misr_modis_aeronet = colloc_data;
+%colloc_datas{1} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2004.mat');
+%colloc_datas{2} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2005.mat');
+%colloc_datas{3} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2006.mat');
+%colloc_datas{4} = load('/work/collocated_MISR_MODIS_AERONET_NEW_2007.mat');
+%colloc_datas{1}.collocated_misr_modis_aeronet = collocated_misr_modis_aeronet;
+%colloc_datas{1}.collocated_misr_modis_aeronet = colloc_data;
+labelled_indexes = cell(total_years,1);
+unlabelled_indexes = cell(total_years,1);
 
 
 
-truth_aeronet = data(:, 3);
-forecast_modis = data(:, 2);
-forecast_misr = data(:, 1);
-
-indicator_modis = (forecast_modis ~= 0);
-indicator_misr = (forecast_misr ~= 0);
-indicator_dummy_whole = (forecast_misr == forecast_misr);
-
-len=days*row*column;
-Q1 = alpha1 * spdiags(indicator_misr, 0, len, len) + alpha2 * spdiags(indicator_modis, 0, len, len) + alpha3 * spdiags(indicator_dummy_whole, 0, len, len);
-
-
-Q=2*(Q1+Q2);
-
-
-%Save the row, column and the values of those elements who have non zero
-%values which can be used later for sparse matrix creation
-
-u = Q\b;
-
-
-%Saving the u values and the missingValuesIndex
-save('u.mat','u');
-
-
-
+for i=1:total_years
+    data = colloc_datas{i}.collocated_misr_modis_aeronet;
+    labelled_indexes{i}.labelled_index = find(data(:,3) ~= 0);
+    unlabelled_indexes{i}.unlabelled_index = linearMatrix(:,4);
+    unlabelled_indexes{i}.unlabelled_index(labelled_indexes{i}.labelled_index,:)=[];
+end
+    
+len = days*N;

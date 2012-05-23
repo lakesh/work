@@ -33,8 +33,8 @@ len = size(colloc_data, 1);
 % train CRF
 while true
     tic;
-    truth_aeronet = colloc_data(:, 5);
-    forecast_modis = colloc_data(:, 3);
+    truth_aeronet = colloc_data(:, 3);
+    forecast_modis = colloc_data(:, 2);
     forecast_misr = colloc_data(:, 1);
     
     indicator_modis = (forecast_modis ~= 0);
@@ -56,29 +56,29 @@ while true
         2 * (forecast_misr' - loc_prediction'*spdiags(indicator_misr, 0, len, len)) * (truth_aeronet - loc_prediction) + ...
         trace(sigma_inv\spdiags(indicator_misr, 0, len, len));
 
-    gradient_alpha2 = -((truth_aeronet - loc_prediction)' * spdiags(indicator_misr, 0, len, len) * (truth_aeronet - loc_prediction)) + ...
+    gradient_alpha2 = -((truth_aeronet - loc_prediction)' * spdiags(indicator_modis, 0, len, len) * (truth_aeronet - loc_prediction)) + ...
         2 * (forecast_modis' - loc_prediction'*spdiags(indicator_modis, 0, len, len)) * (truth_aeronet - loc_prediction) + ...
         trace(spdiags(sigma_inv\indicator_modis, 0, len, len));
     
-    gradient_beta = ...
-            -(truth_aeronet + loc_prediction)' * aaaa_create_sparse_tridiagonal_matrix_for_beta(len) * (truth_aeronet - loc_prediction) + ...
-            trace(spdiags(sigma_inv\aaaa_create_sparse_tridiagonal_matrix_for_beta(len)));
+    %gradient_beta = ...
+    %        -(truth_aeronet + loc_prediction)' * aaaa_create_sparse_tridiagonal_matrix_for_beta(len) * (truth_aeronet - loc_prediction) + ...
+    %        trace(spdiags(sigma_inv\aaaa_create_sparse_tridiagonal_matrix_for_beta(len)));
             
  
  
     % apply gradient information    
-    alpha1_new = exp(log(alpha1) + learning_rate * alpha1 * (gradient_alpha1-alpha1));
-    alpha2_new = exp(log(alpha2) + learning_rate * alpha2 * (gradient_alpha2-alpha2));
+    alpha1_new = exp(log(alpha1) + learning_rate * alpha1 * (gradient_alpha1));
+    alpha2_new = exp(log(alpha2) + learning_rate * alpha2 * (gradient_alpha2));
     
     delta_alpha1 = abs(alpha1_new - alpha1);
     delta_alpha2 = abs(alpha2_new - alpha2);
     alpha1 = alpha1_new;
     alpha2 = alpha2_new;
     
-    disp(delta_alpha1);
+    [delta_alpha1 delta_alpha2 alpha1 alpha2]
+    %pause
     
-    
-    if (delta_alpha1 < 0.0001 && delta_alpha2 < 0.0001)
+    if (delta_alpha1 < 0.000000001 && delta_alpha2 < 0.000000001)
         break;
     end;
     
